@@ -37,7 +37,7 @@ def add_layer(inputs, in_size, out_size, activation_function = None):
    For each mini-batch, you train the network weights with gradient descent. 
    Since these batches are random, you're performing SGD with each batch."""
 
-""" Define Parameters (training_epochs, learning_rate, batch_size, display_step)"""
+""" Define Parameters (training_epochs, learning_rate, batch_size, display_step, num_neurons, etc.)"""
 # Learning parameters
     # learning rate for GradientDescentOpitimizer
 learning_rate = 0.001
@@ -90,6 +90,8 @@ optimizer = tf.train.GradientDescentOptimizer(learning_rate = learning_rate).min
 
 """ ################## Start to train #################"""
 """ Session """
+#情節設定(plot setting)
+
 # Initialize the variables
 init = tf.global_variables_initializer()
     # or init = tf.initialize_all_variables()
