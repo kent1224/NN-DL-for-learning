@@ -37,7 +37,7 @@ def add_layer(inputs, in_size, out_size, activation_function = None):
    For each mini-batch, you train the network weights with gradient descent. 
    Since these batches are random, you're performing SGD with each batch."""
 
-""" Parameters """
+""" Define Parameters (training_epochs, learning_rate, batch_size, display_step)"""
 # Learning parameters
     # learning rate for GradientDescentOpitimizer
 learning_rate = 0.001
@@ -78,6 +78,7 @@ prediction = add_layer(layer_2, layer_2_n_hidden_layer, n_classes, activation_fu
 
 
 """ Define loss and optimizer """
+#cost function: mean squared error, squared euclidean distance, cross-entropy, ...
 # Build the loss rule
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
 # cross entropy for cost function
@@ -98,6 +99,7 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
     
+    #Training cycle
     for epoch in range(training_epoch):
         
     
