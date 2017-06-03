@@ -7,7 +7,6 @@ Created on Fri Jun  2 17:29:23 2017
 
 import input_data
 import tensorflow as tf
-import matplotlib.pyplot as plt
 
 """ read data """
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
@@ -50,7 +49,6 @@ def conv2d(img, w, b):
 def max_pool(img, k):
     return tf.nn.max_pool(img, ksize = [1, k, k, 1], strides = [1, k, k, 1], padding = 'SAME')
 
-
 """ store layers weight and bias (共享權重與共享偏差)"""
 #第一層卷積層：32個特徵，5*5*1的filter
 wc1 = tf.Variable(tf.random_normal([5, 5, 1, 32]))
@@ -61,8 +59,9 @@ bc2 = tf.Variable(tf.random_normal([64]))
 #Fully connected layer(全連結層)：inputs: 7*7*64, outputs: 1024 -用來處理整個圖像
 wd1 = tf.Variable(tf.random_normal([7*7*64, 1024]))
 bd1 = tf.Variable(tf.random_normal([1024]))
-
-#
+#output layer (class prediction)
+wout = tf.Variable(tf.random_normal([1024, n_classes]))
+bout = tf.Variable(tf.random_normal([n_classes]))
 
 """ construct model """
 #第一卷積層(first convolution layer)
@@ -79,6 +78,52 @@ conv2 = max_pool(conv2, k=2)
 #第二層dropout
 conv2 = tf.nn.dropout(conv2, keep_prob)
 
-#全連結層(密集連接層，Fully connected layer)：Reshape conv2 output to fit dense layer input
-dense1 = 
+#全連結層(密集連接層，Fully connected layer)：計算和一般的NN一樣
+#Reshape conv2 output to fit dense layer input(assume 1024 outputs)
+dense1 = tf.reshape(conv2, [-1, wd1.get_shape().as_list()[0]])
+#計算 and activation function(assume relu)
+dense1 = tf.nn.relu(tf.add(tf.matmul(dense1, wd1), bd1))
+#fully connected layer needs dropout as well
+dense1 = tf.nn.dropout(dense1, keep_prob)
 
+#output layer
+pred = tf.add(tf.matmul(dense1, wout), bout)
+
+""" Define loss and optimizer """
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(pred, y))
+optimizer = tf.train.AdamOptimizer(learning_rate = learning_rate).minimize(cost)
+
+""" Evaluate model """
+correct_pred = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_pred), tf.float32)
+
+""" Session """
+init = tf.initialize_all_variables()
+
+with tf.Session() as sess:
+    sess.run(init)
+    step = 1
+    
+    #keep training until reach max iteration
+    while step*batch_size < training_iters:
+        batch_xs, batch_ys = mnist.train.next_batch(batch_size)
+        
+        #fit training using training data
+        sess.run(optimizer, feed_dict={x: batch_xs, y: batch_ys, keep_prob: dropout})
+        
+        if step % display_step == 0:
+            #calculate batch accuracy
+            acc = sess.run(accuracy, feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1.})
+            
+            #calculate batch loss
+            loss = sess.run(cost, feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1.})
+            
+            print ("Iter " + str(step*batch_size) + ", Minibatch loss= " + "{:.6f}".format(loss) + ", Training accuracy= " + "{:.5f}".format(acc))
+        
+        step += 1
+    
+    print ("Optimization finished!")
+    
+    #calculate accuracy for 256 mnist test images
+    print ("Testing accuracy:", sess.run(accuracy, feed_dict={x: mnist.test.images[:256], y: mnist.test.labels[:256], keep_prob: 1.}))
+    
