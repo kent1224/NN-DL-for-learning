@@ -44,7 +44,7 @@ mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
    For each mini-batch, you train the network weights with gradient descent. 
    Since these batches are random, you're performing SGD with each batch."""
 
-""" Define Parameters (training_epochs, learning_rate, batch_size, display_step, num_neurons, etc.)"""
+""" Parameters (training_epochs, learning_rate, batch_size, display_step) """
 # learning_rate: for Opitimizer
 learning_rate = 0.001
 
@@ -59,7 +59,7 @@ batch_size = 128
 # display_size: for printing results 
 display_step = 1
 
-""" Define network parameters """
+""" network parameters """
 n_input = 784 # e.g. MNIST data input (img shape: 28*28)
 n_classes = 10 # e.g. MNIST total classes (0-9 digits)
 
@@ -75,22 +75,25 @@ y = tf.placeholder("float",[None,n_classes])
 # Reshape
 x_flat = tf.reshape(x, [-1, n_input])
 
-""" Create graph """
-# logistic regression 只有一層，activation function: softmax
+""" Create graph (model) """
+# SLP: 
+# - logistic regression: 一層，activation function: softmax
+# - perceptron         :
+
+# MLP:
+# - neuron network     :
 
 
 # Hidden layer
-# in_size = n_input, out_size = n_hidden_layer
 
 # activation function: 不同神經元的函數可以是不同的，但在實踐中，我們對於所有的神經元，採用的共同特徵通常是sigmoid類型的函數
-#    softmax: to compute probabilities (將輸入轉換為機率形式的輸出),
-#    relu:
-#    sigmoid: 
+# - softmax: to compute probabilities (將輸入轉換為機率形式的輸出),
+# - relu:
+# - sigmoid: 
 layer_1 = add_layer(x_flat, n_input, n_hidden_1, activation_function = tf.nn.softmax)
 layer_2 = add_layer(layer_1, n_hidden_1, n_hidden_2, activation_function = tf.nn.relu)
 
 # Output layer
-# in_size = n_hidden_layer, out_size = n_classes
 prediction = add_layer(layer_2, n_hidden_2, n_classes, activation_function = None)
 
 
@@ -149,10 +152,11 @@ with tf.Session() as sess:
     plt.xlabel('epoch')
     plt.legend()
     plt.show()
+   
+""" Evaluate Model """
+#Test model
+correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))    #correct_prediction 的平均值將會提供給我們準確性
     
-    #Test model
-    correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))    #correct_prediction 的平均值將會提供給我們準確性
-    
-    #calculate accuracy then print it out
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-    print ("Model Accuracy:", accuracy.eval({x: mnist.test.images, y: mnist.test.labels}))
+#calculate accuracy then print it out
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+print ("Model Accuracy:", accuracy.eval({x: mnist.test.images, y: mnist.test.labels}))
