@@ -5,7 +5,9 @@ Created on Mon May 15 11:36:11 2017
 @author: 14224
 """
 
+import input_data
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 def add_layer(inputs, in_size, out_size, activation_function = None):
     
@@ -25,6 +27,10 @@ def add_layer(inputs, in_size, out_size, activation_function = None):
     
     return output
 
+""" read data """
+mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+
+
 """Mini-batching is a technique for training on subsets of the dataset 
    instead of all the data at one time. This provides the ability to train a model, 
    even if a computer lacks the memory to store the entire dataset.
@@ -38,76 +44,114 @@ def add_layer(inputs, in_size, out_size, activation_function = None):
    Since these batches are random, you're performing SGD with each batch."""
 
 """ Define Parameters (training_epochs, learning_rate, batch_size, display_step, num_neurons, etc.)"""
-# Learning parameters
-    # learning rate for GradientDescentOpitimizer
+# learning_rate: for Opitimizer
 learning_rate = 0.001
-    # one epoch = one forward pass and one backward pass of all the training examples
-    # epoch: 學習周期，透過選擇一組訓練集，來稍微修改突觸的加權值
-    # An epoch is a single forward and backward pass of the whole dataset. This is used to increase the accuracy of the model without requiring more data.
-training_epochs = 20 
-    # batch size = the number of training examples in one forward/backward pass. The higher the batch size, the more memory space you'll need.
-batch_size = 128 
-display_step = 1 # ??
 
-layer_1_n_input = 784 # e.g. MNIST data input (img shape: 28*28)
+# one epoch = one forward pass and one backward pass of all the training examples
+# epoch: 學習周期，透過選擇一組訓練集，來稍微修改突觸的加權值
+# An epoch is a single forward and backward pass of the whole dataset. This is used to increase the accuracy of the model without requiring more data.
+training_epoch = 20 
+
+# batch size: the number of training examples in one forward/backward pass. The higher the batch size, the more memory space you'll need.
+batch_size = 128
+
+# display_size: for printing results 
+display_step = 1
+
+""" Define network parameters """
+n_input = 784 # e.g. MNIST data input (img shape: 28*28)
 n_classes = 10 # e.g. MNIST total classes (0-9 digits)
 
 # Hidden layer parameters
-layer_1_n_hidden_layer = 256 # layer number of features, determines the sizes of the hidden layer in the neural network. This is also known as the width of a layer.
-layer_2_n_hidden_layer = 256
+n_hidden_1 = 256 # layer number of features, determines the sizes of the hidden layer in the neural network. This is also known as the width of a layer.
+n_hidden_2 = 256
 
 """ Input """
 # Input
-#placeholder: 預留位，allows us to create our operations and build our computation graph, without needing the data，之後在session用feed_dict餵進去
-x = tf.placeholder("float",[None,28,28,1])
+x = tf.placeholder("float",[None,28,28,1])   #placeholder: 預留位，allows us to create our operations and build our computation graph, without needing the data，之後在session用feed_dict餵進去
 y = tf.placeholder("float",[None,n_classes])
 
 # Reshape
-x_flat = tf.reshape(x, [-1, layer_1_n_input])
+x_flat = tf.reshape(x, [-1, n_input])
 
-""" Create NN graph """
+""" Create graph """
+# logistic regression 只有一層，activation function: softmax
+
+
 # Hidden layer
 # in_size = n_input, out_size = n_hidden_layer
-# logistic regression 只有一層，activation function: softmax (將輸入轉換為機率形式的輸出)
-layer_1 = add_layer(x_flat, layer_1_n_input, layer_1_n_hidden_layer, activation_function = tf.nn.softmax)
-layer_2 = add_layer(layer_1, layer_1_n_hidden_layer, layer_2_n_hidden_layer, activation_function = tf.nn.relu)
+
+# activation function: 不同神經元的函數可以是不同的，但在實踐中，我們對於所有的神經元，採用的共同特徵通常是sigmoid類型的函數
+#    softmax: to compute probabilities (將輸入轉換為機率形式的輸出),
+#    relu:
+#    sigmoid: 
+layer_1 = add_layer(x_flat, n_input, n_hidden_1, activation_function = tf.nn.softmax)
+layer_2 = add_layer(layer_1, n_hidden_1, n_hidden_2, activation_function = tf.nn.relu)
 
 # Output layer
 # in_size = n_hidden_layer, out_size = n_classes
-prediction = add_layer(layer_2, layer_2_n_hidden_layer, n_classes, activation_function = None)
+prediction = add_layer(layer_2, n_hidden_2, n_classes, activation_function = None)
 
 
-""" Define loss and optimizer """
-#cost function: mean squared error, squared euclidean distance, cross-entropy, ...
-# Build the loss rule
-loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
-# cross entropy for cost function
+""" Define cost function and optimizer """
+#cost function: mean squared error, squared euclidean distance, cross-entropy, 
+#               soft_cross_entropy_with_logits, ...
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
+#cross_entropy = y*tf.lg(activation)
+#cost = tf.reduce_mean(-tf.reduce_sum(cross_entropy, reduction_indices = 1))
 
-
-# Choose the learning mechanism and minimize the loss
-optimizer = tf.train.GradientDescentOptimizer(learning_rate = learning_rate).minimize(loss)
+# optimizer: GradientDescentOptimizer, AdamOptimizer, ... 
+optimizer = tf.train.GradientDescentOptimizer(learning_rate = learning_rate).minimize(cost)
 
 
 """ ################## Start to train #################"""
 """ Session """
-#情節設定(plot setting)
+#plot setting(情節設定)
+avg_set = []
+epoch_set = []
 
 # Initialize the variables
-init = tf.global_variables_initializer()
-    # or init = tf.initialize_all_variables()
+init = tf.global_variables_initializer()     # or init = tf.initialize_all_variables()
 
-# Build the sess and initialize it
-# Launch the graph
+# Launch the graph (Build the sess and initialize it)
 with tf.Session() as sess:
+    # run initializer
     sess.run(init)
     
     #Training cycle
     for epoch in range(training_epoch):
+        avg_cost = 0.
+        total_batch = int(mnist.train.num_examples/batch_size)
         
+        # loop over all batches
+        for i in range(total_batch):
+            # split training data into x and y
+            batch_xs, batch_ys = mnist.train.next_batch(batch_size)      # calling the mnist.train.next_batch() function returns a subset of the training data
+            
+            # run optimizer (backprop): 在訓練時使用批次資料 (fit training using batch data)
+            sess.run(optimizer, feed_dict={x: batch_xs, y: batch_ys})
+            
+            #compute average cost
+            avg_cost += sess.run(cost, feed_dict={x: batch_xs, y: batch_ys})/total_batch
+        
+        #display logs per epoch step (每一個epoch，印出相對的成本函數並視覺化)
+        if epoch % display_step == 0:
+            print ("Epoch:", '%04d' % (epoch+1), "cost:", "{:.9f}".format(avg_cost))
+        
+        avg_set.append(avg_cost)
+        epoch_set.append(epoch+1)
+    print ("Training phase finished.")
+
+    #將相對的成本函數視覺化
+    plt.plot(epoch_set, avg_set, 'o', label = 'Logistic Regression Training Phase')
+    plt.ylabel('cost')
+    plt.xlabel('epoch')
+    plt.legend()
+    plt.show()
     
-    #最後還是要print出來
-    #每一個epoch，印出相對的成本函數並視覺化
-    #印出模型準確率
-
-
-
+    #Test model
+    correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))    #correct_prediction 的平均值將會提供給我們準確性
+    
+    #calculate accuracy then print it out
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+    print ("Model Accuracy:", accuracy.eval({x: mnist.test.images, y: mnist.test.labels}))
