@@ -9,13 +9,14 @@ import input_data
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
+""" layer contructing function """
 def add_layer(inputs, in_size, out_size, activation_function = None):
     
-    """ Weights and biases """
+    # Weights and biases
     weights = tf.Variable(tf.random_normal([in_size, out_size]))
     biases = tf.Variable(tf.random_normal([out_size]))          
     
-    """ Multilayer perception """
+    # Multilayer perception
     # Hidden layer, output layer: xw+b
     # Don't forget that order matters in matrix multiplication, so tf.matmul(a,b) is not the same as tf.matmul(b,a).
     layer = tf.add(tf.matmul(inputs, weights), biases)
@@ -27,7 +28,7 @@ def add_layer(inputs, in_size, out_size, activation_function = None):
     
     return output
 
-""" read data """
+""" load data """
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
 
