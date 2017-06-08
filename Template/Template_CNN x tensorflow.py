@@ -46,7 +46,13 @@ keep_prob = tf.placeholder(tf.float32)
 def conv2d(img, w, b):
     return tf.nn.relu(tf.nn.bias_add(tf.nn.conv2d(img, w, strides = [1, 1, 1, 1], padding = 'SAME'), b))
 
-#tf.nn.max_pool對輸入執行最大池化
+#tf.nn.max_pool對輸入執行最大池化: for decreasing the size of the output, and preventing overfitting
+"""
+Conceptually, the benefit of the max pooling operation is to reduce the size of the input, 
+and allow the neural network to focus on only the most important elements. 
+Max pooling does this by only retaining the maximum value for each filtered area, 
+and removing the remaining values.
+"""
 def max_pool(img, k):
     return tf.nn.max_pool(img, ksize = [1, k, k, 1], strides = [1, k, k, 1], padding = 'SAME')
 
