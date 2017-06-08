@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 """ layer contructing function """
 def add_layer(inputs, in_size, out_size, activation_function = None):
     
-    # Weights and biases
+    # Weights and biases: differences between zeros, random_normal, truncated_normal?
     weights = tf.Variable(tf.random_normal([in_size, out_size]))
     biases = tf.Variable(tf.random_normal([out_size]))          
     
@@ -107,6 +107,15 @@ cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = predictio
 # optimizer: GradientDescentOptimizer, AdamOptimizer, ... 
 optimizer = tf.train.GradientDescentOptimizer(learning_rate = learning_rate).minimize(cost)
 
+""" save and restore """
+saver = tf.train.Saver()
+#Save variables
+save_file = './model.ckpt' # the file path to save the data
+                           # model = model name(自己定義的)
+
+#Remove the previous weights, biases, tensors, and operations.
+#tf.reset_default_graph()
+
 
 """ ################## Start to train #################"""
 """ Session """
@@ -119,6 +128,17 @@ init = tf.global_variables_initializer()     # or init = tf.initialize_all_varia
 
 # Launch the graph (Build the sess and initialize it)
 with tf.Session() as sess:
+    # load variables and trained model
+    saver.restore(sess, save_file) 
+        # Since tf.train.Saver.restore() sets all the TensorFlow Variables, you don't need to call tf.global_variables_initializer().
+        # loading saved Variables directly into a modified model can generate errors.
+        """ Naming Error: Assign requires shapes of both tensors to match. - The code saver.restore(sess, save_file) is trying to load weight data into bias and bias data into weights.
+                TensorFlow uses a string identifier for Tensors and Operations called name.
+                If a name is not given, TensorFlow will create one automatically. 
+                TensorFlow will give the first node the name <Type>, 
+                and then give the name <Type>_<number> for the subsequent nodes.
+            To solve: set name properties manually. read Udacity MLND DNN 7
+        """
     # run initializer
     sess.run(init)
     
@@ -153,6 +173,10 @@ with tf.Session() as sess:
     plt.xlabel('epoch')
     plt.legend()
     plt.show()
+   
+    # save the model
+    saver.save(sess, save_file)   
+    print('Trained Model Saved.')
    
 """ Evaluate Model """
 #Test model
