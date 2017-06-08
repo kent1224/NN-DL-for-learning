@@ -39,7 +39,7 @@ learning_rate = 0.001
 # one epoch = one forward pass and one backward pass of all the training examples
 # epoch: 學習周期，透過選擇一組訓練集，來稍微修改突觸的加權值
 # An epoch is a single forward and backward pass of the whole dataset. This is used to increase the accuracy of the model without requiring more data.
-training_epoch = 20 
+training_epoch = 2
 
 # batch size: the number of training examples in one forward/backward pass. The higher the batch size, the more memory space you'll need.
 batch_size = 128
@@ -68,11 +68,12 @@ n_hidden_2 = 256
 
 """ Input """
 # Input
-x = tf.placeholder("float",[None,28,28,1])   #placeholder: 預留位，allows us to create our operations and build our computation graph, without needing the data，之後在session用feed_dict餵進去
+x = tf.placeholder("float",[None,784]) 
+#x = tf.placeholder("float",[None,28,28,1])   #placeholder: 預留位，allows us to create our operations and build our computation graph, without needing the data，之後在session用feed_dict餵進去
 y = tf.placeholder("float",[None,n_classes])
 
 # Reshape
-x_flat = tf.reshape(x, [-1, n_input])
+#x_flat = tf.reshape(x, [-1, n_input])
 
 """ Create graph (model) """
 # SLP: 
@@ -89,7 +90,8 @@ x_flat = tf.reshape(x, [-1, n_input])
 # - softmax: to compute probabilities (將輸入轉換為機率形式的輸出),
 # - relu:
 # - sigmoid: 
-layer_1 = add_layer(x_flat, n_input, n_hidden_1, activation_function = tf.nn.softmax)
+layer_1 = add_layer(x, n_input, n_hidden_1, activation_function = tf.nn.softmax)
+#layer_1 = add_layer(x_flat, n_input, n_hidden_1, activation_function = tf.nn.softmax)
 layer_2 = add_layer(layer_1, n_hidden_1, n_hidden_2, activation_function = tf.nn.relu)
 
 # Output layer
@@ -107,10 +109,18 @@ cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = predictio
 # optimizer: GradientDescentOptimizer, AdamOptimizer, ... 
 optimizer = tf.train.GradientDescentOptimizer(learning_rate = learning_rate).minimize(cost)
 
+""" Evaluate Model """
+#Test model
+correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))    #correct_prediction 的平均值將會提供給我們準確性
+    
+#calculate accuracy then print it out
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+#print ("Model Accuracy:", accuracy.eval({x: mnist.test.images, y: mnist.test.labels}))
+
 """ save and restore """
-saver = tf.train.Saver()
+#saver = tf.train.Saver()
 #Save variables
-save_file = './model.ckpt' # the file path to save the data
+#save_file = './model.ckpt' # the file path to save the data
                            # model = model name(自己定義的)
 
 #Remove the previous weights, biases, tensors, and operations.
@@ -128,19 +138,20 @@ init = tf.global_variables_initializer()     # or init = tf.initialize_all_varia
 
 # Launch the graph (Build the sess and initialize it)
 with tf.Session() as sess:
+    sess.run(init)
     # load variables and trained model
-    saver.restore(sess, save_file) 
+    #saver.restore(sess, save_file) 
         # Since tf.train.Saver.restore() sets all the TensorFlow Variables, you don't need to call tf.global_variables_initializer().
         # loading saved Variables directly into a modified model can generate errors.
-        """ Naming Error: Assign requires shapes of both tensors to match. - The code saver.restore(sess, save_file) is trying to load weight data into bias and bias data into weights.
-                TensorFlow uses a string identifier for Tensors and Operations called name.
-                If a name is not given, TensorFlow will create one automatically. 
-                TensorFlow will give the first node the name <Type>, 
-                and then give the name <Type>_<number> for the subsequent nodes.
-            To solve: set name properties manually. read Udacity MLND DNN 7
-        """
+        # Naming Error: Assign requires shapes of both tensors to match. - The code saver.restore(sess, save_file) is trying to load weight data into bias and bias data into weights.
+        #        TensorFlow uses a string identifier for Tensors and Operations called name.
+        #        If a name is not given, TensorFlow will create one automatically. 
+        #        TensorFlow will give the first node the name <Type>, 
+        #        and then give the name <Type>_<number> for the subsequent nodes.
+        #    To solve: set name properties manually. read Udacity MLND DNN 7
+        
     # run initializer
-    sess.run(init)
+    #sess.run(init)
     
     #Training cycle
     for epoch in range(training_epoch):
@@ -175,13 +186,12 @@ with tf.Session() as sess:
     plt.show()
    
     # save the model
-    saver.save(sess, save_file)   
+    #saver.save(sess, save_file)   
     print('Trained Model Saved.')
-   
-""" Evaluate Model """
-#Test model
-correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))    #correct_prediction 的平均值將會提供給我們準確性
     
-#calculate accuracy then print it out
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-print ("Model Accuracy:", accuracy.eval({x: mnist.test.images, y: mnist.test.labels}))
+    test_acc = sess.run(accuracy, feed_dict={
+        x: mnist.test.images[:256],
+        y: mnist.test.labels[:256]})
+    print('Testing Accuracy: {}'.format(test_acc))
+   
+
