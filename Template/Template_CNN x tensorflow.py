@@ -14,9 +14,12 @@ mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
 """ parameters """
 learning_rate = 0.001
-training_iters = 100000
+training_epoch = 10
 batch_size = 128
 display_step = 10
+
+""" Number of samples to calculate validation and accuracy """
+test_valid_size = 256 # Decrease this if you're running out of memory to calculate accuracy
 
 """ Network parameters (include dropout)"""
 n_input = 784
@@ -39,7 +42,7 @@ y = tf.placeholder(tf.float32, [None, n_classes])
 #用於保持神經元輸出在丟棄期間的機率
 keep_prob = tf.placeholder(tf.float32)
 
-""" create model """
+""" create model: convolutions and max_pooling """
 #tf.nn.conv2d從輸入tensor和共享權重計算出2D卷積，然後將該操作的結果加入到偏置矩陣bc1。
 #relu(修正的線性單元)是深度神經網路隱藏層中常用的activation function
 #填充值'SAME'用以指示輸出張量的輸出將與輸入張量的大小一致
@@ -53,48 +56,57 @@ and allow the neural network to focus on only the most important elements.
 Max pooling does this by only retaining the maximum value for each filtered area, 
 and removing the remaining values.
 """
-def max_pool(img, k):
+def maxpool2d(img, k):
     return tf.nn.max_pool(img, ksize = [1, k, k, 1], strides = [1, k, k, 1], padding = 'SAME')
 
 """ store layers weight and bias (共享權重與共享偏差)"""
 #第一層卷積層：32個特徵，5*5*1的filter
-wc1 = tf.Variable(tf.random_normal([5, 5, 1, 32]))
-bc1 = tf.Variable(tf.random_normal([32]))
 #第二層卷積層：64個特徵，5*5*32的filter
-wc2 = tf.Variable(tf.random_normal([5, 5, 32, 64]))
-bc2 = tf.Variable(tf.random_normal([64]))
 #Fully connected layer(全連結層)：inputs: 7*7*64, outputs: 1024 -用來處理整個圖像
-wd1 = tf.Variable(tf.random_normal([7*7*64, 1024]))
-bd1 = tf.Variable(tf.random_normal([1024]))
 #output layer (class prediction)
-wout = tf.Variable(tf.random_normal([1024, n_classes]))
-bout = tf.Variable(tf.random_normal([n_classes]))
+weights = {
+    'wc1': tf.Variable(tf.random_normal([5, 5, 1, 32])),
+    'wc2': tf.Variable(tf.random_normal([5, 5, 32, 64])),
+    'wd1': tf.Variable(tf.random_normal([7*7*64, 1024])),
+    'wout': tf.Variable(tf.random_normal([1024, n_classes]))}
+
+biases = {
+    'bc1': tf.Variable(tf.random_normal([32])),
+    'bc2': tf.Variable(tf.random_normal([64])),
+    'bd1': tf.Variable(tf.random_normal([1024])),
+    'out': tf.Variable(tf.random_normal([n_classes]))}
 
 """ construct model """
-#第一卷積層(first convolution layer)
-conv1 = conv2d(_x, wc1, bc1)
-#第一層卷積層的池化，簡化之前建立的卷積層的輸出資訊(down sampling)
-conv1 = max_pool(conv1, k=2)
-#第一層dropout
-conv1 = tf.nn.dropout(conv1, keep_prob)
+def conv_net(x, weights, biases, keep_prob):
+    #第一卷積層(first convolution layer): 28*28*1 to 28*28*32
+    conv1 = conv2d(x, weights['wc1'], biases['bc1'])
+    #第一層卷積層的池化，簡化之前建立的卷積層的輸出資訊(down sampling): 28*28*32 to 14*14*32
+    conv1 = maxpool2d(conv1, k=2)
+    #第一層dropout
+    conv1 = tf.nn.dropout(conv1, keep_prob)
 
-#第二卷積層(second convolution layer)
-conv2 = conv2d(conv1, wc2, bc2)
-#第二層卷積層的池化，簡化之前建立的卷積層的輸出資訊(down sampling)
-conv2 = max_pool(conv2, k=2)
-#第二層dropout
-conv2 = tf.nn.dropout(conv2, keep_prob)
+    #第二卷積層(first convolution layer): 14*14*32 to 14*14*64
+    conv2 = conv2d(conv1, weights['wc2'], biases['bc2'])
+    #第二層卷積層的池化，簡化之前建立的卷積層的輸出資訊(down sampling): 14*14*64 to 7*7*64
+    conv2 = maxpool2d(conv2, k=2)
+    #第二層dropout
+    conv2 = tf.nn.dropout(conv2, keep_prob)
 
-#全連結層(密集連接層，Fully connected layer)：計算和一般的NN一樣
-#Reshape conv2 output to fit dense layer input(assume 1024 outputs)
-dense1 = tf.reshape(conv2, [-1, wd1.get_shape().as_list()[0]])
-#計算 and activation function(assume relu)
-dense1 = tf.nn.relu(tf.add(tf.matmul(dense1, wd1), bd1))
-#fully connected layer needs dropout as well
-dense1 = tf.nn.dropout(dense1, keep_prob)
+    # Fully connected layer - 7*7*64 to 1024
+    #全連結層(密集連接層，Fully connected layer)：計算和一般的NN一樣
+    #Reshape conv2 output to fit dense layer input(assume 1024 outputs)
+    fc1 = tf.reshape(conv2, [-1, weights['wd1'].get_shape().as_list()[0]])
+    #計算 and activation function(assume relu)
+    fc1 = tf.nn.relu(tf.add(tf.matmul(fc1, weights['wd1']), biases['bd1']))
+    #fully connected layer needs dropout as well
+    fc1 = tf.nn.dropout(fc1, keep_prob)
 
-#output layer
-pred = tf.add(tf.matmul(dense1, wout), bout)
+    # Output Layer - class prediction - 1024 to 10
+    pred = tf.add(tf.matmul(fc1, weights['out']), biases['out'])
+    return pred
+
+""" model """
+pred = conv_net(x, weights, biases, keep_prob)
 
 """ Define cost function and optimizer """
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(pred, y))
@@ -108,9 +120,44 @@ accuracy = tf.reduce_mean(tf.cast(correct_pred), tf.float32)
 init = tf.initialize_all_variables()
 
 with tf.Session() as sess:
-    sess.run(init)
-    step = 1
+    sess.run(init) 
     
+    #Training cycle
+    for epoch in range(training_epoch):
+        total_batch = int(mnist.train.num_examples/batch_size)
+        
+        # loop over all batches
+        for batch in range(total_batch):
+            # split training data into x and y
+            batch_xs, batch_ys = mnist.train.next_batch(batch_size)
+            
+            # run optimizer (backprop): 在訓練時使用批次資料 (fit training using batch data)        
+            sess.run(optimizer, feed_dict={x: batch_xs, y: batch_ys, keep_prob: dropout})
+
+            # Calculate batch loss and accuracy
+            loss = sess.run(cost, feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1.})
+            valid_acc = sess.run(accuracy, feed_dict={x: mnist.validation.images[:test_valid_size], y: mnist.validation.labels[:test_valid_size], keep_prob: 1.})
+            
+            #display logs per epoch step per batch
+            print('Epoch {:>2}, Batch {:>3} -'
+                  'Loss: {:>10.4f} Validation Accuracy: {:.6f}'.format(
+                epoch + 1,
+                batch + 1,
+                loss,
+                valid_acc))
+
+    # Calculate Test Accuracy
+    test_acc = sess.run(accuracy, feed_dict={
+        x: mnist.test.images[:test_valid_size],
+        y: mnist.test.labels[:test_valid_size],
+        keep_prob: 1.})
+    print('Testing Accuracy: {}'.format(test_acc))
+    
+
+""" example on tensorflow book
+    
+    step = 1
+
     #keep training until reach max iteration
     while step*batch_size < training_iters:
         batch_xs, batch_ys = mnist.train.next_batch(batch_size)
@@ -133,4 +180,4 @@ with tf.Session() as sess:
     
     #calculate accuracy for 256 mnist test images
     print ("Testing accuracy:", sess.run(accuracy, feed_dict={x: mnist.test.images[:256], y: mnist.test.labels[:256], keep_prob: 1.}))
-    
+""" 
