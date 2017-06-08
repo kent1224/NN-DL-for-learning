@@ -6,7 +6,7 @@ Created on Wed Jun  7 16:37:38 2017
 """
 
 
-import input_data
+from tensorflow.examples.tutorials.mnist import input_data
 import tensorflow as tf
 
 """ read data """
@@ -14,7 +14,7 @@ mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
 """ parameters """
 learning_rate = 0.001
-training_epoch = 10
+training_epoch = 2
 batch_size = 128
 display_step = 10
 
@@ -26,10 +26,11 @@ n_input = 784
 n_classes = 10
 
 """ input """
-x = tf.placeholder(tf.float32, [None, n_input])
+x = tf.placeholder(tf.float32, [None, 28, 28, 1])
+#x = tf.placeholder(tf.float32, [None, n_input])
 #28*28*1，-1代表不管輸入有幾個，Tensorflow 會自動調整的意思，假設輸入 50 個圖片第一個維度就是 50．
 #這邊例子顏色是黑白灰階，因此值為1，若是RGB，則是3
-_x = tf.reshape(x, shape = [-1, 28, 28, 1])
+#_x = tf.reshape(x, shape = [-1, 28, 28, 1])
 
 y = tf.placeholder(tf.float32, [None, n_classes])
 
@@ -73,7 +74,7 @@ biases = {
     'bc1': tf.Variable(tf.random_normal([32])),
     'bc2': tf.Variable(tf.random_normal([64])),
     'bd1': tf.Variable(tf.random_normal([1024])),
-    'out': tf.Variable(tf.random_normal([n_classes]))}
+    'bout': tf.Variable(tf.random_normal([n_classes]))}
 
 """ construct model """
 def conv_net(x, weights, biases, keep_prob):
@@ -101,19 +102,20 @@ def conv_net(x, weights, biases, keep_prob):
     fc1 = tf.nn.dropout(fc1, keep_prob)
 
     # Output Layer - class prediction - 1024 to 10
-    pred = tf.add(tf.matmul(fc1, weights['out']), biases['out'])
+    pred = tf.add(tf.matmul(fc1, weights['wout']), biases['bout'])
     return pred
 
 """ model """
 pred = conv_net(x, weights, biases, keep_prob)
 
 """ Define cost function and optimizer """
-cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(pred, y))
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = pred, labels = y))
 optimizer = tf.train.AdamOptimizer(learning_rate = learning_rate).minimize(cost)
 
 """ Evaluate model """
 correct_pred = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
-accuracy = tf.reduce_mean(tf.cast(correct_pred), tf.float32)
+accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+#accuracy = tf.reduce_mean(tf.cast(correct_pred), tf.float32)
 
 """ Session """
 init = tf.initialize_all_variables()
