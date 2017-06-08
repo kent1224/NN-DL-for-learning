@@ -31,21 +31,9 @@ def add_layer(inputs, in_size, out_size, activation_function = None):
 """ load data """
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
-
-"""Mini-batching is a technique for training on subsets of the dataset 
-   instead of all the data at one time. This provides the ability to train a model, 
-   even if a computer lacks the memory to store the entire dataset.
-   Mini-batching is computationally inefficient, 
-   since you can't calculate the loss simultaneously across all samples. 
-   However, this is a small price to pay in order to be able to run the model at all.
-   It's also quite useful combined with SGD. 
-   The idea is to randomly shuffle the data at the start of each epoch, 
-   then create the mini-batches. 
-   For each mini-batch, you train the network weights with gradient descent. 
-   Since these batches are random, you're performing SGD with each batch."""
-
 """ Parameters (training_epochs, learning_rate, batch_size, display_step) """
-# learning_rate: for Opitimizer
+# learning_rate: for Opitimizer 
+#   - lowering the learning rate would require more epochs, but could ultimately achieve better accuracy.
 learning_rate = 0.001
 
 # one epoch = one forward pass and one backward pass of all the training examples
@@ -55,6 +43,17 @@ training_epoch = 20
 
 # batch size: the number of training examples in one forward/backward pass. The higher the batch size, the more memory space you'll need.
 batch_size = 128
+"""
+   Mini-batching is a technique for training on subsets of the dataset instead of all the data at one time. 
+   This provides the ability to train a model, even if a computer lacks the memory to store the entire dataset.
+   
+   Mini-batching is computationally inefficient, since you can't calculate the loss simultaneously across all samples. 
+   However, this is a small price to pay in order to be able to run the model at all.
+   
+   It's also quite useful combined with SGD. 
+   The idea is to randomly shuffle the data at the start of each epoch, then create the mini-batches. 
+   For each mini-batch, you train the network weights with gradient descent. Since these batches are random, you're performing SGD with each batch.
+"""
 
 # display_size: for printing results 
 display_step = 1
@@ -98,10 +97,11 @@ prediction = add_layer(layer_2, n_hidden_2, n_classes, activation_function = Non
 
 
 """ Define cost function and optimizer """
-#cost function: mean squared error, squared euclidean distance, cross-entropy, 
-#               soft_cross_entropy_with_logits, ...
+#cost function: 前面都要有tf.reduce_mean()
+#     mean squared error, squared euclidean distance, cross-entropy (-sum(y*ln(y-hat))), 
+#     soft_cross_entropy_with_logits, ...
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
-#cross_entropy = y*tf.lg(activation)
+#cross_entropy = y*tf.lg(prediction)
 #cost = tf.reduce_mean(-tf.reduce_sum(cross_entropy, reduction_indices = 1))
 
 # optimizer: GradientDescentOptimizer, AdamOptimizer, ... 
@@ -139,9 +139,10 @@ with tf.Session() as sess:
             avg_cost += sess.run(cost, feed_dict={x: batch_xs, y: batch_ys})/total_batch
         
         #display logs per epoch step (每一個epoch，印出相對的成本函數並視覺化)
+        #藉由不斷調整epoch, learning rate，並印出，找出最適的epoch, learning rate
         if epoch % display_step == 0:
             print ("Epoch:", '%04d' % (epoch+1), "cost:", "{:.9f}".format(avg_cost))
-        
+           
         avg_set.append(avg_cost)
         epoch_set.append(epoch+1)
     print ("Training phase finished.")
