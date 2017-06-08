@@ -25,11 +25,6 @@ test_valid_size = 256 # Decrease this if you're running out of memory to calcula
 n_input = 784
 n_classes = 10
 
-#為了減少過度配適(overfitting),應用Dropout(丟棄正則化技術)，指的是在神經網路中丟棄單元(隱藏、輸入和輸出)。
-#決定消除哪些神經元是隨機的，一種方法是應用機率。
-#probability to keep units
-dropout = 0.75
-
 """ input """
 x = tf.placeholder(tf.float32, [None, n_input])
 #28*28*1，-1代表不管輸入有幾個，Tensorflow 會自動調整的意思，假設輸入 50 個圖片第一個維度就是 50．
@@ -39,6 +34,10 @@ _x = tf.reshape(x, shape = [-1, 28, 28, 1])
 y = tf.placeholder(tf.float32, [None, n_classes])
 
 """ Dropout (keep probability) """
+#為了減少過度配適(overfitting),應用Dropout(丟棄正則化技術)，指的是在神經網路中丟棄單元(隱藏、輸入和輸出)。
+#決定消除哪些神經元是隨機的，一種方法是應用機率。
+#probability to keep units
+dropout = 0.75
 #用於保持神經元輸出在丟棄期間的機率
 keep_prob = tf.placeholder(tf.float32)
 
