@@ -136,6 +136,7 @@ with tf.Session() as sess:
             sess.run(optimizer, feed_dict={x: batch_xs, y: batch_ys, keep_prob: dropout})
 
             # Calculate batch loss and accuracy
+            # keep_prob = 1
             loss = sess.run(cost, feed_dict={x: batch_xs, y: batch_ys, keep_prob: 1.})
             valid_acc = sess.run(accuracy, feed_dict={x: mnist.validation.images[:test_valid_size], y: mnist.validation.labels[:test_valid_size], keep_prob: 1.})
             
@@ -148,6 +149,7 @@ with tf.Session() as sess:
                 valid_acc))
 
     # Calculate Test Accuracy
+    # During testing, use a keep_prob value of 1.0 to keep all units and maximize the power of the model.
     test_acc = sess.run(accuracy, feed_dict={
         x: mnist.test.images[:test_valid_size],
         y: mnist.test.labels[:test_valid_size],
