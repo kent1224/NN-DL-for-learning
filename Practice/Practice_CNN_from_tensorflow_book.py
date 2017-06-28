@@ -78,7 +78,7 @@ conv2 = max_pool(conv2, k=2)
 #第二層dropout
 conv2 = tf.nn.dropout(conv2, keep_prob)
 
-#全連結層(密集連接層，Fully connected layer)：計算和一般的NN一樣
+#全連結層(密集連接層，Fully connected layer)：計算和一般的NN一樣 ("flattening")
 #Reshape conv2 output to fit dense layer input(assume 1024 outputs)
 dense1 = tf.reshape(conv2, [-1, wd1.get_shape().as_list()[0]])
 #計算 and activation function(assume relu)
